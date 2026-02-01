@@ -2,13 +2,11 @@ include(GenerateExportHeader)
 include(CMakePackageConfigHelpers)
 
 option(BUILD_TEST "Build unit tests" ON)
-option(BUILD_SAMPLE "Build sample" ON)
 
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/Generated CACHE PATH "" FORCE)
 set(GENERATED_API_HEADER_DIR ${GENERATED_DIR}/Api CACHE PATH "" FORCE)
 set(GENERATED_MIRROR_INFO_SRC_DIR ${GENERATED_DIR}/MirrorInfoSrc CACHE PATH "" FORCE)
 set(BASE_TARGETS_FOLDER "${SUB_PROJECT_NAME}" CACHE STRING "" FORCE)
-set(SAMPLE_TARGETS_FOLDER "${BASE_TARGETS_FOLDER}/Sample" CACHE STRING "" FORCE)
 set(AUX_TARGETS_FOLDER "${BASE_TARGETS_FOLDER}/Aux" CACHE STRING "" FORCE)
 
 if (${BUILD_TEST})
@@ -290,14 +288,10 @@ function(exp_add_mirror_info_source_generation_target)
 endfunction()
 
 function(exp_add_executable)
-    set(options SAMPLE NOT_INSTALL)
-    set(singleValueArgs NAME)
+    set(options NOT_INSTALL)
+    set(singleValueArgs NAME FOLDER)
     set(multiValueArgs SRC INC LINK LIB DEP_TARGET RES REFLECT)
     cmake_parse_arguments(arg "${options}" "${singleValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    if (${arg_SAMPLE} AND (NOT ${BUILD_SAMPLE}))
-        return()
-    endif()
 
     if (${arg_NOT_INSTALL})
         set(not_install_flag NOT_INSTALL)
@@ -321,8 +315,8 @@ function(exp_add_executable)
         ${arg_NAME}
         PRIVATE ${arg_SRC} ${generated_src}
     )
-    if (${arg_SAMPLE})
-        set_target_properties(${arg_NAME} PROPERTIES FOLDER ${SAMPLE_TARGETS_FOLDER})
+    if (DEFINED arg_FOLDER)
+        set_target_properties(${arg_NAME} PROPERTIES FOLDER ${BASE_TARGETS_FOLDER}/${arg_FOLDER})
     else ()
         set_target_properties(${arg_NAME} PROPERTIES FOLDER ${BASE_TARGETS_FOLDER})
     endif ()

@@ -6,6 +6,7 @@ set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES ${CMAKE_SOURCE_DIR}/conan_provider.cmake CA
 project(Explosion)
 
 option(BUILD_EDITOR "Build Explosion editor" ON)
+option(BUILD_SAMPLE "Build samples" ON)
 
 set(SUB_PROJECT_NAME "Explosion" CACHE STRING "" FORCE)
 set(SUB_PROJECT_VERSION_MAJOR 0 CACHE STRING "" FORCE)

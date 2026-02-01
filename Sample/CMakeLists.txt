@@ -4,6 +4,10 @@ function(add_sample)
     set(multiValueArgs SRC INC SHADER IMAGE MODEL)
     cmake_parse_arguments(arg "${options}" "${singleValueArgs}" "${multiValueArgs}" ${ARGN})
 
+    if (NOT ${BUILD_SAMPLE})
+        return()
+    endif ()
+
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
         set(platform_dep_target RHI-DirectX12 RHI-Vulkan)
     else()
@@ -28,8 +32,8 @@ function(add_sample)
     list(APPEND paths "${CMAKE_SOURCE_DIR}/Engine/Shader/Platform.esh->../Test/Sample/ShaderInclude/Platform.esh")
 
     exp_add_executable(
-        SAMPLE
         NAME ${arg_NAME}
+        FOLDER Sample
         SRC ${arg_SRC}
         INC ${arg_INC}
         LIB Sample-Base
@@ -106,7 +110,7 @@ add_sample(
 
 file(GLOB sources Rendering-BaseTexture/*.cpp)
 add_sample(
-    NAME Rendering-BaseTexture
+    NAME RenderingSample-BaseTexture
     SRC ${sources}
     INC Rendering-BaseTexture
     SHADER Rendering-BaseTexture/BaseTexture.esl
@@ -115,7 +119,7 @@ add_sample(
 
 file(GLOB SOURCES Rendering-SSAO/*.cpp)
 add_sample(
-    NAME Rendering-SSAO
+    NAME RenderingSample-SSAO
     SRC ${SOURCES}
     INC Rendering-SSAO
     SHADER
