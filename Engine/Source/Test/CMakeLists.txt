@@ -3,6 +3,5 @@ exp_add_library(
     TYPE STATIC
     SRC Src/Main.cpp
     PUBLIC_INC Include
-    PUBLIC_LIB Core
-    PUBLIC_MERGE_LIB GTest::gtest
+    PUBLIC_LIB Core GTest::gtest
 )

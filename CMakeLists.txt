@@ -12,6 +12,8 @@ set(SUB_PROJECT_NAME "Explosion" CACHE STRING "" FORCE)
 set(SUB_PROJECT_VERSION_MAJOR 0 CACHE STRING "" FORCE)
 set(SUB_PROJECT_VERSION_MINOR 0 CACHE STRING "" FORCE)
 set(SUB_PROJECT_VERSION_PATCH 1 CACHE STRING "" FORCE)
+set(SUB_PROJECT_CMAKE_LIBS "ThirdParty/Registry.cmake" CACHE STRING "" FORCE)
+set(USE_CONAN ON CACHE BOOL "" FORCE)
 
 set(CMAKE_MAP_IMPORTED_CONFIG_DEBUG "Release" CACHE STRING "" FORCE)
 set(CMAKE_MAP_IMPORTED_CONFIG_RELWITHDEBINFO "Release" CACHE STRING "" FORCE)
@@ -21,8 +23,8 @@ add_definitions(-DBUILD_EDITOR=$<BOOL:BUILD_EDITOR>)
 
 include(CMake/Common.cmake)
 include(CMake/Target.cmake)
+include(ThirdParty/Registry.cmake)
 
-add_subdirectory(ThirdParty)
 add_subdirectory(Engine)
 add_subdirectory(Tool)
 add_subdirectory(Sample)

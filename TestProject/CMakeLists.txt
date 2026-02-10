@@ -14,5 +14,5 @@ find_package(Explosion REQUIRED)
 exp_add_executable(
     NAME Main
     SRC Main.cpp
-    LIB Explosion::Common
+    LIB Explosion::Core
 )

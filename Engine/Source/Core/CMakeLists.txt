@@ -11,8 +11,7 @@ exp_add_library(
     TYPE SHARED
     SRC ${sources}
     PUBLIC_INC Include ${generated_include_dir}
-    PUBLIC_LIB Common
-    PUBLIC_MERGE_LIB clipp::clipp
+    PUBLIC_LIB Common clipp::clipp
 )
 
 file(GLOB test_sources Test/*.cpp)

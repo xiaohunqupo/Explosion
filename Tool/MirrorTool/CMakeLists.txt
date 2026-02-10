@@ -3,8 +3,7 @@ exp_add_library(
     NAME MirrorTool.Static
     SRC ${sources}
     PUBLIC_INC Include
-    PUBLIC_LIB Mirror
-    PUBLIC_MERGE_LIB libclang::libclang clipp::clipp
+    PUBLIC_LIB Mirror libclang::libclang clipp::clipp
 )
 
 file(GLOB exe_sources ExeSrc/*.cpp)

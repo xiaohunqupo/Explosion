@@ -19,5 +19,7 @@ ThirdParty/ConanRecipes/**/build
 ThirdParty/ConanRecipes/**/CMakeUserPresets.json
 
 # Test Project
+TestProject/.idea
+TestProject/.vscode
 TestProject/cmake-build*
 TestProject/build*

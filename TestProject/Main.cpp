@@ -1,7 +1,7 @@
-#include <Common/Debug.h>
+#include <Core/Log.h>
 
 int main()
 {
-    Assert(true);
+    LogInfo(Project, "Hello, explosion");
     return 0;
 }

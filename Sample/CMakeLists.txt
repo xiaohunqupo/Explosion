@@ -56,8 +56,7 @@ exp_add_library(
     NAME Sample-Base
     SRC ${sources}
     PUBLIC_INC Base
-    PUBLIC_LIB RHI ${platform_ext_libs} Render.Static
-    PUBLIC_MERGE_LIB glfw::glfw clipp::clipp stb::stb assimp::assimp
+    PUBLIC_LIB RHI ${platform_ext_libs} Render.Static glfw::glfw clipp::clipp stb::stb assimp::assimp
     NOT_INSTALL
 )
 
