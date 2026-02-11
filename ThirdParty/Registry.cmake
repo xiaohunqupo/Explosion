@@ -1,3 +1,9 @@
+if (${USE_CONAN})
+    install(CODE "execute_process(COMMAND conan install ${CMAKE_SOURCE_DIR} -c tools.cmake.cmakedeps:new=will_break_next --deployer=full_deploy --output-folder=${CMAKE_INSTALL_PREFIX}/${SUB_PROJECT_NAME}/ThirdParty)")
+else ()
+    set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};${CMAKE_CURRENT_LIST_DIR}/../../ThirdParty")
+endif ()
+
 find_package(httplib REQUIRED GLOBAL)
 find_package(glfw REQUIRED GLOBAL)
 find_package(stb REQUIRED GLOBAL)

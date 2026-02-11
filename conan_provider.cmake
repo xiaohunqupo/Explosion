@@ -461,7 +461,9 @@ endfunction()
 
 
 function(conan_install)
-    set(conan_output_folder ${CMAKE_BINARY_DIR}/conan)
+    # ++[kindem]
+    set(conan_output_folder ${CMAKE_BINARY_DIR}/Conan)
+    # --[kindem]
     # Invoke "conan install" with the provided arguments
     set(conan_args -of=${conan_output_folder})
     message(STATUS "CMake-Conan: conan install ${CMAKE_SOURCE_DIR} ${conan_args} ${ARGN}")
@@ -707,7 +709,7 @@ cmake_language(DEFER DIRECTORY "${CMAKE_SOURCE_DIR}" CALL conan_provide_dependen
 set(CONAN_HOST_PROFILE "default;auto-cmake" CACHE STRING "Conan host profile")
 set(CONAN_BUILD_PROFILE "default" CACHE STRING "Conan build profile")
 # ++[kindem]
-set(CONAN_INSTALL_ARGS "--build=missing;-c;tools.cmake.cmakedeps:new=will_break_next" CACHE STRING "Command line arguments for conan install")
+set(CONAN_INSTALL_ARGS "--build=missing;-c;tools.cmake.cmakedeps:new=will_break_next;--deployer=full_deploy;--output-folder=ThirdParty" CACHE STRING "Command line arguments for conan install")
 # --[kindem]
 
 find_program(_cmake_program NAMES cmake NO_PACKAGE_ROOT_PATH NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH NO_CMAKE_FIND_ROOT_PATH)

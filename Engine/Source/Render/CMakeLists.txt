@@ -4,8 +4,7 @@ exp_add_library(
     TYPE STATIC
     SRC ${sources}
     PUBLIC_INC Include
-    PUBLIC_LIB Core RHI
-    PUBLIC_MERGE_LIB dxc::dxc spirv-cross::spirv-cross
+    PUBLIC_LIB Core RHI dxc::dxc spirv-cross::spirv-cross
 )
 
 file(GLOB shader_sources SharedSrc/*.cpp)

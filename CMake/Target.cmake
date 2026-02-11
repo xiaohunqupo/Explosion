@@ -1,9 +1,12 @@
-option(BUILD_TEST "Build unit tests" ON)
-option(BUILD_SAMPLE "Build sample" ON)
+include(GenerateExportHeader)
+include(CMakePackageConfigHelpers)
 
-set(API_HEADER_DIR ${CMAKE_BINARY_DIR}/Generated/Api CACHE PATH "" FORCE)
-set(BASE_TARGETS_FOLDER "${ENGINE_SUB_PROJECT_NAME}" CACHE STRING "" FORCE)
-set(SAMPLE_TARGETS_FOLDER "${BASE_TARGETS_FOLDER}/Sample" CACHE STRING "" FORCE)
+option(BUILD_TEST "Build unit tests" ON)
+
+set(GENERATED_DIR ${CMAKE_BINARY_DIR}/Generated CACHE PATH "" FORCE)
+set(GENERATED_API_HEADER_DIR ${GENERATED_DIR}/Api CACHE PATH "" FORCE)
+set(GENERATED_MIRROR_INFO_SRC_DIR ${GENERATED_DIR}/MirrorInfoSrc CACHE PATH "" FORCE)
+set(BASE_TARGETS_FOLDER "${SUB_PROJECT_NAME}" CACHE STRING "" FORCE)
 set(AUX_TARGETS_FOLDER "${BASE_TARGETS_FOLDER}/Aux" CACHE STRING "" FORCE)
 
 if (${BUILD_TEST})
@@ -12,6 +15,10 @@ if (${BUILD_TEST})
 else()
     add_definitions(-DBUILD_TEST=0)
 endif()
+
+if ("${SUB_PROJECT_NAME}" STREQUAL "")
+    message(FATAL_ERROR "SUB_PROJECT_NAME not defined, please set it in your project cmake")
+endif ()
 
 function(exp_gather_target_runtime_dependencies_recurse)
     set(options "")
@@ -26,20 +33,7 @@ function(exp_gather_target_runtime_dependencies_recurse)
 
     get_target_property(runtime_dep ${arg_NAME} RUNTIME_DEP)
     if (NOT ("${runtime_dep}" STREQUAL "runtime_dep-NOTFOUND"))
-        foreach(r ${runtime_dep})
-            # workaround to make EXPORT_PROPERTIES support generator expression
-            string(REPLACE "[" "$<" r "${r}")
-            string(REPLACE "]" ">" r "${r}")
-
-            get_target_property(type ${arg_NAME} TYPE)
-            if (${type} STREQUAL "SHARED_LIBRARY")
-                set(target_bin_dir $<TARGET_FILE_DIR:${arg_NAME}>)
-            else ()
-                set(target_bin_dir $<TARGET_FILE_DIR:${arg_NAME}>/../Binaries)
-            endif ()
-            string(REPLACE "$<TARGET_BIN_DIR>" ${target_bin_dir} temp_r ${r})
-            list(APPEND result_runtime_dep ${temp_r})
-        endforeach()
+        list(APPEND result_runtime_dep ${runtime_dep})
     endif()
 
     get_target_property(libs ${arg_NAME} LINK_LIBRARIES)
@@ -93,6 +87,7 @@ function(exp_process_runtime_dependencies)
         list(APPEND dep_targets ${dep_dep_targets})
     endforeach ()
 
+    set(copy_commands COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${arg_NAME}>)
     foreach(r ${runtime_deps})
         list(APPEND copy_commands COMMAND ${CMAKE_COMMAND} -E copy_if_different ${r} $<TARGET_FILE_DIR:${arg_NAME}>)
     endforeach()
@@ -255,7 +250,7 @@ function(exp_add_mirror_info_source_generation_target)
             get_filename_component(dir ${temp} DIRECTORY)
             get_filename_component(filename ${temp} NAME_WE)
 
-            set(output_source "${CMAKE_BINARY_DIR}/Generated/MirrorInfoSource/${dir}/${filename}.generated.cpp")
+            set(output_source "${GENERATED_MIRROR_INFO_SRC_DIR}/${dir}/${filename}.generated.cpp")
             list(APPEND output_sources ${output_source})
 
             add_custom_command(
@@ -281,14 +276,10 @@ function(exp_add_mirror_info_source_generation_target)
 endfunction()
 
 function(exp_add_executable)
-    set(options SAMPLE NOT_INSTALL)
-    set(singleValueArgs NAME)
+    set(options NOT_INSTALL)
+    set(singleValueArgs NAME FOLDER)
     set(multiValueArgs SRC INC LINK LIB DEP_TARGET RES REFLECT)
     cmake_parse_arguments(arg "${options}" "${singleValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    if (${arg_SAMPLE} AND (NOT ${BUILD_SAMPLE}))
-        return()
-    endif()
 
     if (${arg_NOT_INSTALL})
         set(not_install_flag NOT_INSTALL)
@@ -312,8 +303,8 @@ function(exp_add_executable)
         ${arg_NAME}
         PRIVATE ${arg_SRC} ${generated_src}
     )
-    if (${arg_SAMPLE})
-        set_target_properties(${arg_NAME} PROPERTIES FOLDER ${SAMPLE_TARGETS_FOLDER})
+    if (DEFINED arg_FOLDER)
+        set_target_properties(${arg_NAME} PROPERTIES FOLDER ${BASE_TARGETS_FOLDER}/${arg_FOLDER})
     else ()
         set_target_properties(${arg_NAME} PROPERTIES FOLDER ${BASE_TARGETS_FOLDER})
     endif ()
@@ -386,11 +377,11 @@ endfunction()
 function(exp_add_library)
     set(options NOT_INSTALL)
     set(singleValueArgs NAME TYPE)
-    set(multiValueArgs SRC PRIVATE_INC PUBLIC_INC PRIVATE_LINK PUBLIC_LINK PRIVATE_LIB PUBLIC_LIB PRIVATE_MERGE_LIB PUBLIC_MERGE_LIB REFLECT)
+    set(multiValueArgs SRC PRIVATE_INC PUBLIC_INC PRIVATE_LINK PUBLIC_LINK PRIVATE_LIB PUBLIC_LIB REFLECT)
     cmake_parse_arguments(arg "${options}" "${singleValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if ("${arg_TYPE}" STREQUAL "SHARED")
-        list(APPEND arg_PUBLIC_INC ${API_HEADER_DIR}/${arg_NAME})
+        list(APPEND arg_PUBLIC_INC ${GENERATED_API_HEADER_DIR}/${arg_NAME})
     endif ()
 
     if (DEFINED arg_REFLECT)
@@ -438,77 +429,24 @@ function(exp_add_library)
     )
 
     foreach (inc ${arg_PUBLIC_INC})
-        list(APPEND public_inc ${inc})
-    endforeach ()
-    foreach (lib ${arg_PUBLIC_MERGE_LIB})
-        if (TARGET ${lib})
-            list(APPEND public_inc $<TARGET_PROPERTY:${lib},INTERFACE_INCLUDE_DIRECTORIES>)
-        endif ()
-    endforeach ()
-
-    foreach (inc ${public_inc})
-        string(REGEX MATCH "\\$\\<.+\\>" match ${inc})
-        if (match)
-            list(APPEND public_build_inc $<BUILD_INTERFACE:${inc}>)
-        else ()
-            get_filename_component(absolute_inc ${inc} ABSOLUTE)
-            list(APPEND public_build_inc $<BUILD_INTERFACE:${absolute_inc}>)
-        endif ()
+        get_filename_component(absolute_inc ${inc} ABSOLUTE)
+        list(APPEND public_build_inc $<BUILD_INTERFACE:${absolute_inc}>)
     endforeach ()
     target_include_directories(
         ${arg_NAME}
         PRIVATE ${arg_PRIVATE_INC}
         PUBLIC ${public_build_inc} $<INSTALL_INTERFACE:${SUB_PROJECT_NAME}/Target/${arg_NAME}/Include>
     )
-
     target_link_directories(
         ${arg_NAME}
         PRIVATE ${arg_PRIVATE_LINK}
         PUBLIC ${arg_PUBLIC_LINK}
     )
-
-    foreach (lib ${arg_PRIVATE_MERGE_LIB})
-        list(APPEND merge_lib ${lib})
-    endforeach ()
-    foreach (lib ${arg_PUBLIC_MERGE_LIB})
-        list(APPEND merge_lib ${lib})
-    endforeach ()
-
-    foreach (lib ${merge_lib})
-        list(APPEND build_merge_lib $<BUILD_INTERFACE:${lib}>)
-
-        exp_gather_target_runtime_dependencies_recurse(
-            NAME ${lib}
-            OUT_RUNTIME_DEP temp_runtime_dep
-        )
-        list(APPEND runtime_dep ${temp_runtime_dep})
-    endforeach ()
     target_link_libraries(
         ${arg_NAME}
-        PRIVATE ${build_merge_lib}
+        PRIVATE ${arg_PRIVATE_LIB}
         PUBLIC ${arg_PUBLIC_LIB}
     )
-
-    if (DEFINED runtime_dep)
-        foreach (r ${runtime_dep})
-            get_filename_component(FILE_NAME ${r} NAME)
-            list(APPEND commands COMMAND ${CMAKE_COMMAND} -E copy_if_different ${r} ${runtime_output_dir}/${FILE_NAME})
-            list(APPEND runtime_dep_files $<TARGET_BIN_DIR>/${FILE_NAME})
-        endforeach ()
-        add_custom_command(
-            TARGET ${arg_NAME} POST_BUILD
-            ${commands}
-        )
-
-        # workaround to make EXPORT_PROPERTIES support generator expression
-        string(REPLACE "$<" "[" runtime_dep_files "${runtime_dep_files}")
-        string(REPLACE ">" "]" runtime_dep_files "${runtime_dep_files}")
-        set_target_properties(
-            ${arg_NAME} PROPERTIES
-            EXPORT_PROPERTIES "RUNTIME_DEP"
-            RUNTIME_DEP "${runtime_dep_files}"
-        )
-    endif ()
 
     if ("${arg_TYPE}" STREQUAL "SHARED")
         string(TOUPPER ${arg_NAME}_API api_name)
@@ -517,7 +455,7 @@ function(exp_add_library)
         generate_export_header(
             ${arg_NAME}
             EXPORT_MACRO_NAME ${api_name}
-            EXPORT_FILE_NAME ${API_HEADER_DIR}/${arg_NAME}/${api_dir}/Api.h
+            EXPORT_FILE_NAME ${GENERATED_API_HEADER_DIR}/${arg_NAME}/${api_dir}/Api.h
         )
     endif()
 
@@ -526,7 +464,7 @@ function(exp_add_library)
     endif()
 
     if (NOT ${arg_NOT_INSTALL})
-        foreach (inc ${public_inc})
+        foreach (inc ${arg_PUBLIC_INC})
             list(APPEND install_inc ${inc}/)
         endforeach ()
         install(
@@ -534,29 +472,23 @@ function(exp_add_library)
             DESTINATION ${SUB_PROJECT_NAME}/Target/${arg_NAME}/Include
         )
 
-        if (DEFINED runtime_dep)
-            install(
-                FILES ${runtime_dep}
-                DESTINATION ${SUB_PROJECT_NAME}/Target/${arg_NAME}/Binaries
-            )
-        endif ()
-
         install(
             TARGETS ${arg_NAME}
             EXPORT ${SUB_PROJECT_NAME}Targets
             ARCHIVE DESTINATION ${SUB_PROJECT_NAME}/Target/${arg_NAME}/Lib
             LIBRARY DESTINATION ${SUB_PROJECT_NAME}/Target/${arg_NAME}/Lib
-            RUNTIME DESTINATION ${SUB_PROJECT_NAME}/Binaries
+            RUNTIME DESTINATION ${SUB_PROJECT_NAME}/Target/${arg_NAME}/Binaries
         )
         export(
             TARGETS ${arg_NAME}
             NAMESPACE ${SUB_PROJECT_NAME}::
             APPEND FILE ${CMAKE_BINARY_DIR}/${SUB_PROJECT_NAME}Targets.cmake
         )
+
         if ("${arg_TYPE}" STREQUAL "SHARED")
             install(
                 FILES $<TARGET_FILE:${arg_NAME}>
-                DESTINATION ${SUB_PROJECT_NAME}/Target/${arg_NAME}/Binaries
+                DESTINATION ${SUB_PROJECT_NAME}/Binaries
             )
         endif ()
     endif ()
@@ -643,5 +575,57 @@ install(
     EXPORT ${SUB_PROJECT_NAME}Targets
     FILE ${SUB_PROJECT_NAME}Targets.cmake
     NAMESPACE ${SUB_PROJECT_NAME}::
+    DESTINATION ${SUB_PROJECT_NAME}
+)
+
+configure_package_config_file(
+    ${CMAKE_CURRENT_LIST_DIR}/Config.cmake.in
+    ${CMAKE_BINARY_DIR}/${SUB_PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION ${SUB_PROJECT_NAME}/CMake
+)
+
+write_basic_package_version_file(
+    ${CMAKE_BINARY_DIR}/${SUB_PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${SUB_PROJECT_VERSION_MAJOR}.${SUB_PROJECT_VERSION_MINOR}.${SUB_PROJECT_VERSION_PATCH}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(
+    FILES
+        ${CMAKE_BINARY_DIR}/${SUB_PROJECT_NAME}Config.cmake
+        ${CMAKE_BINARY_DIR}/${SUB_PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${SUB_PROJECT_NAME}
+)
+
+file(GLOB_RECURSE preset_cmake_libs ${CMAKE_CURRENT_LIST_DIR}/*)
+foreach (cmake_lib ${preset_cmake_libs})
+    file(
+        COPY ${cmake_lib}
+        DESTINATION ${CMAKE_BINARY_DIR}/CMake
+    )
+endforeach ()
+install(
+    FILES ${preset_cmake_libs}
     DESTINATION ${SUB_PROJECT_NAME}/CMake
 )
+
+if (DEFINED SUB_PROJECT_CMAKE_LIBS)
+    foreach (cmake_lib ${SUB_PROJECT_CMAKE_LIBS})
+        if (IS_ABSOLUTE ${cmake_lib})
+            message(FATAL_ERROR "project cmake libs defined in SUB_PROJECT_CMAKE_LIBS should be relative path from project root")
+        endif ()
+
+        set(src_file ${CMAKE_SOURCE_DIR}/${cmake_lib})
+        get_filename_component(binary_tree_dst_dir ${CMAKE_BINARY_DIR}/CMake/${cmake_lib} DIRECTORY)
+        get_filename_component(install_tree_dst_dir ${SUB_PROJECT_NAME}/CMake/${cmake_lib} DIRECTORY)
+
+        file(
+            COPY ${src_file}
+            DESTINATION ${binary_tree_dst_dir}
+        )
+        install(
+            FILES ${src_file}
+            DESTINATION ${install_tree_dst_dir}
+        )
+    endforeach ()
+endif ()

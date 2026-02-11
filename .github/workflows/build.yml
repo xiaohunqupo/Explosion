@@ -69,3 +69,5 @@ jobs:
 
       - name: Install
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install -j ${{env.MAKE_THREAD_NUM}}
+
+      # TODO build test project
