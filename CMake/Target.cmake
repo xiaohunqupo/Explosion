@@ -9,11 +9,13 @@ set(GENERATED_MIRROR_INFO_SRC_DIR ${GENERATED_DIR}/MirrorInfoSrc CACHE PATH "" F
 set(BASE_TARGETS_FOLDER "${SUB_PROJECT_NAME}" CACHE STRING "" FORCE)
 set(AUX_TARGETS_FOLDER "${BASE_TARGETS_FOLDER}/Aux" CACHE STRING "" FORCE)
 
+get_cmake_property(with_multi_config_generator GENERATOR_IS_MULTI_CONFIG)
+
 if (${BUILD_TEST})
     enable_testing()
-    add_definitions(-DBUILD_TEST=1)
+    add_compile_definitions(BUILD_TEST=1)
 else()
-    add_definitions(-DBUILD_TEST=0)
+    add_compile_definitions(BUILD_TEST=0)
 endif()
 
 if ("${SUB_PROJECT_NAME}" STREQUAL "")
@@ -107,7 +109,7 @@ function(exp_process_runtime_dependencies)
     endif ()
     if (NOT ${arg_NOT_INSTALL} AND NOT "${runtime_deps}" STREQUAL "")
         install(
-            FILES ${runtime_deps} DESTINATION ${CMAKE_INSTALL_PREFIX}/${SUB_PROJECT_NAME}/Binaries
+            FILES ${runtime_deps} DESTINATION ${SUB_PROJECT_NAME}/Binaries
         )
     endif ()
 endfunction()
@@ -141,8 +143,8 @@ function(exp_add_resources_copy_command)
 
         list(APPEND copy_commands COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src} $<TARGET_FILE_DIR:${arg_NAME}>/${dst})
 
-        get_filename_component(absolute_dst ${CMAKE_INSTALL_PREFIX}/${SUB_PROJECT_NAME}/Binaries/${dst} ABSOLUTE)
-        get_filename_component(dst_dir ${absolute_dst} DIRECTORY)
+        cmake_path(SET dst_path NORMALIZE "${SUB_PROJECT_NAME}/Binaries/${dst}")
+        cmake_path(GET dst_path PARENT_PATH dst_dir)
         if (NOT ${arg_NOT_INSTALL})
             install(FILES ${src} DESTINATION ${dst_dir})
         endif ()
@@ -166,6 +168,7 @@ function(exp_gather_target_libs)
     string(REGEX MATCH "\\$\\<BUILD_INTERFACE.+\\>" match ${arg_NAME})
     if (match)
         set(${arg_OUTPUT} "" PARENT_SCOPE)
+        return()
     endif ()
 
     get_target_property(target_libs ${arg_NAME} LINK_LIBRARIES)
@@ -309,8 +312,7 @@ function(exp_add_executable)
         set_target_properties(${arg_NAME} PROPERTIES FOLDER ${BASE_TARGETS_FOLDER})
     endif ()
 
-    get_cmake_property(generated_is_multi_config GENERATOR_IS_MULTI_CONFIG)
-    if (${generated_is_multi_config})
+    if (${with_multi_config_generator})
         set(runtime_output_dir ${CMAKE_BINARY_DIR}/Dist/$<CONFIG>/${SUB_PROJECT_NAME}/Binaries)
     else ()
         set(runtime_output_dir ${CMAKE_BINARY_DIR}/Dist/${SUB_PROJECT_NAME}/Binaries)
@@ -411,8 +413,7 @@ function(exp_add_library)
         ${arg_NAME}
         PRIVATE ${arg_SRC} ${generated_src}
     )
-    get_cmake_property(generator_is_multi_config GENERATOR_IS_MULTI_CONFIG)
-    if (${generator_is_multi_config})
+    if (${with_multi_config_generator})
         set(runtime_output_dir ${CMAKE_BINARY_DIR}/Targets/${SUB_PROJECT_NAME}/${arg_NAME}/$<CONFIG>/Binaries)
         set(library_output_dir ${CMAKE_BINARY_DIR}/Targets/${SUB_PROJECT_NAME}/${arg_NAME}/$<CONFIG>/Binaries)
         set(archive_output_directory ${CMAKE_BINARY_DIR}/Targets/${SUB_PROJECT_NAME}/${arg_NAME}/$<CONFIG>/Lib)
@@ -504,65 +505,17 @@ function(exp_add_test)
     set(multiValueArgs SRC INC LINK LIB DEP_TARGET RES REFLECT)
     cmake_parse_arguments(arg "${options}" "${singleValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    if (DEFINED arg_REFLECT)
-        exp_add_mirror_info_source_generation_target(
-            NAME ${arg_NAME}
-            OUTPUT_SRC generated_src
-            OUTPUT_TARGET_NAME generated_target
-            SEARCH_DIR ${arg_REFLECT}
-            PRIVATE_INC ${arg_INC}
-            LIB ${arg_LIB}
-        )
-    endif()
-
-    add_executable(${arg_NAME})
-    set_target_properties(${arg_NAME} PROPERTIES FOLDER ${BASE_TARGETS_FOLDER})
-
-    target_sources(
-        ${arg_NAME}
-        PRIVATE ${arg_SRC} ${generated_src}
-    )
-    get_cmake_property(generator_is_multi_config GENERATOR_IS_MULTI_CONFIG)
-    if (${generator_is_multi_config})
-        set_target_properties(
-            ${arg_NAME} PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Dist/$<CONFIG>/${SUB_PROJECT_NAME}/Binaries
-        )
-    else ()
-        set_target_properties(
-            ${arg_NAME} PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Dist/${SUB_PROJECT_NAME}/Binaries
-        )
-    endif ()
-
-    target_include_directories(
-        ${arg_NAME}
-        PRIVATE ${arg_INC}
-    )
-    target_link_directories(
-        ${arg_NAME}
-        PRIVATE ${arg_LINK}
-    )
-    target_link_libraries(
-        ${arg_NAME}
-        PRIVATE Test ${arg_LIB}
-    )
-    exp_process_runtime_dependencies(
+    exp_add_executable(
         NAME ${arg_NAME}
+        SRC ${arg_SRC}
+        INC ${arg_INC}
+        LINK ${arg_LINK}
+        LIB Test ${arg_LIB}
         DEP_TARGET ${arg_DEP_TARGET}
-        NOT_INSTALL
-    )
-    exp_add_resources_copy_command(
-        NAME ${arg_NAME}
         RES ${arg_RES}
+        REFLECT ${arg_REFLECT}
         NOT_INSTALL
     )
-    if (DEFINED arg_DEP_TARGET)
-        add_dependencies(${arg_NAME} ${arg_DEP_TARGET})
-    endif()
-    if (DEFINED arg_REFLECT)
-        add_dependencies(${arg_NAME} ${generated_target})
-    endif()
 
     add_test(
         NAME ${arg_NAME}

@@ -25,6 +25,7 @@ export default function ProjectHubPage() {
   const [engineVersion, setEngineVersion] = useState('');
   const [recentProjects, setRecentProjects] = useState(Array<RecentProjectInfo>);
   const [projectTemplates, setProjectTemplates] = useState(Array<ProjectTemplateInfo>);
+  const [projectPath, setProjectPath] = useState('');
 
   useEffect(() => {
     new QWebChannel(window.qt.webChannelTransport, (channel: QWebChannel): void => {
@@ -47,10 +48,12 @@ export default function ProjectHubPage() {
     console.error('onOpenProject:', index);
   }
 
-  async function onBrowseProjectPath(): Promise<void> {
-    // TODO
-    const dirHandle = await window.showDirectoryPicker({ startIn: 'desktop' });
-    console.error(dirHandle);
+  function onBrowseProjectPath(): void {
+    window.backend.BrowseDirectory((path: string) => {
+      if (path) {
+        setProjectPath(path);
+      }
+    });
   }
 
   return (
@@ -91,7 +94,7 @@ export default function ProjectHubPage() {
           <Form className='w-full ml-4'>
             <Input fullWidth isRequired label='Project Name' labelPlacement='outside' placeholder='HelloExplosion' />
             <div className='flex w-full'>
-              <Input isRequired label='Project Path' labelPlacement='outside' placeholder='/path/to/your/project' />
+              <Input isRequired label='Project Path' labelPlacement='outside' placeholder='/path/to/your/project' value={projectPath} onValueChange={setProjectPath} />
               <Button className='ml-2 mt-6' onPress={() => onBrowseProjectPath()}>
                 Browse
               </Button>

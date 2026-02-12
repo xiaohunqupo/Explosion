@@ -2,27 +2,30 @@ option(USE_UNITY_BUILD "Use unity build" ON)
 option(EXPORT_COMPILE_COMMANDS "Whether to export all compile commands" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_UNITY_BUILD ${USE_UNITY_BUILD})
 set(CMAKE_EXPORT_COMPILE_COMMANDS ${EXPORT_COMPILE_COMMANDS})
 
-get_cmake_property(generator_is_multi_config GENERATOR_IS_MULTI_CONFIG)
 if (${CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT})
     set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/Installed CACHE PATH "" FORCE)
 endif()
 
-add_definitions(-DBUILD_CONFIG_DEBUG=$<IF:$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>,1,0>)
-
-add_definitions(-DPLATFORM_WINDOWS=$<IF:$<PLATFORM_ID:Windows>,1,0>)
-add_definitions(-DPLATFORM_LINUX=$<IF:$<PLATFORM_ID:Linux>,1,0>)
-add_definitions(-DPLATFORM_MACOS=$<IF:$<PLATFORM_ID:Darwin>,1,0>)
-
-add_definitions(-DCOMPILER_MSVC=$<IF:$<CXX_COMPILER_ID:MSVC>,1,0>)
-add_definitions(-DCOMPILER_APPLE_CLANG=$<IF:$<CXX_COMPILER_ID:AppleClang>,1,0>)
-add_definitions(-DCOMPILER_GCC=$<IF:$<CXX_COMPILER_ID:GNU>,1,0>)
+add_compile_definitions(
+    BUILD_CONFIG_DEBUG=$<IF:$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>,1,0>
+    PLATFORM_WINDOWS=$<IF:$<PLATFORM_ID:Windows>,1,0>
+    PLATFORM_LINUX=$<IF:$<PLATFORM_ID:Linux>,1,0>
+    PLATFORM_MACOS=$<IF:$<PLATFORM_ID:Darwin>,1,0>
+    COMPILER_MSVC=$<IF:$<CXX_COMPILER_ID:MSVC>,1,0>
+    COMPILER_APPLE_CLANG=$<IF:$<CXX_COMPILER_ID:AppleClang>,1,0>
+    COMPILER_GCC=$<IF:$<CXX_COMPILER_ID:GNU>,1,0>
+)
 
 if (${MSVC})
-    add_compile_options(/bigobj /MD)
-    add_definitions(-D_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS=1)
-    add_definitions(-DWIN32_LEAN_AND_MEAN)
-    add_definitions(-DNOMINMAX=1)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    add_compile_options(/bigobj)
+    add_compile_definitions(
+        _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS=1
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX=1
+    )
 endif ()
