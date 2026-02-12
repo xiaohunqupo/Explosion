@@ -38,6 +38,7 @@ namespace Editor {
 
     public Q_SLOTS:
         void CreateProject() const;
+        QString BrowseDirectory() const;
 
     private:
         QString GetEngineVersion() const;

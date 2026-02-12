@@ -2,6 +2,8 @@
 // Created by johnk on 2025/8/3.
 //
 
+#include <QFileDialog>
+
 #include <Editor/Widget/ProjectHub.h>
 #include <Editor/Widget/moc_ProjectHub.cpp>
 #include <Core/Log.h>
@@ -39,6 +41,11 @@ namespace Editor {
     {
         // TODO
         LogInfo(ProjectHub, "ProjectHubBridge::CreateProject");
+    }
+
+    QString ProjectHubBackend::BrowseDirectory() const // NOLINT
+    {
+        return QFileDialog::getExistingDirectory(nullptr, "Select Project Directory", QDir::rootPath());
     }
 
     QString ProjectHubBackend::GetEngineVersion() const
