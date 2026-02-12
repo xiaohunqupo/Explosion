@@ -9,25 +9,19 @@ qt_standard_project_setup()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     set(platform_executable_hint MACOSX_BUNDLE)
-    set(bundle_install_dest BUNDLE DESTINATION ${CMAKE_INSTALL_PREFIX}/${SUB_PROJECT_NAME}/Binaries)
+    set(bundle_install_dest BUNDLE DESTINATION ${SUB_PROJECT_NAME}/Binaries)
     set(platform_fwk_dir ${QT_ROOT}/lib)
 endif ()
 
-set(editor_includes Include)
 set(editor_qt_libs Qt6::Core Qt6::Gui Qt6::Widgets Qt6::WebEngineWidgets)
 set(editor_libs Core RHI Runtime httplib::httplib ${editor_qt_libs})
-
-foreach (QT_LIB ${editor_qt_libs})
-    string(REPLACE "::" "" QT_RAW_LIB ${QT_LIB})
-    list(APPEND editor_includes ${${QT_RAW_LIB}_INCLUDE_DIRS})
-endforeach ()
 
 exp_add_mirror_info_source_generation_target(
     NAME Editor
     OUTPUT_SRC EDITOR_MIRROR_GENERATED_SRC
     OUTPUT_TARGET_NAME EDITOR_MIRROR_GENERATED_TARGET
     SEARCH_DIR Include
-    PRIVATE_INC ${editor_includes}
+    PRIVATE_INC Include
     LIB ${editor_libs}
     FRAMEWORK_DIR ${platform_fwk_dir}
 )
@@ -49,7 +43,7 @@ else ()
     )
 endif ()
 
-target_include_directories(Editor PRIVATE ${editor_includes})
+target_include_directories(Editor PRIVATE Include)
 target_link_libraries(Editor PRIVATE ${editor_libs})
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
@@ -65,7 +59,7 @@ exp_process_runtime_dependencies(
 )
 install(
     TARGETS Editor
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${SUB_PROJECT_NAME}/Binaries
+    RUNTIME DESTINATION ${SUB_PROJECT_NAME}/Binaries
     ${bundle_install_dest}
 )
 export(

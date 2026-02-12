@@ -41,7 +41,6 @@ function(add_sample)
         RES ${paths}
         NOT_INSTALL
     )
-    add_dependencies(${arg_NAME} ${platform_dep_target})
 endfunction()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
